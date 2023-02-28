@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="utf-8" http-equiv="encoding" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Platformer | Canvas Game</title>
+		<style>
+            body { background: #C7C7C7; }
+			canvas {
+                border: solid 1px #585858;
+                background: #040203;
+            }
+		</style>
+	</head>
+	<body>
+		<canvas id="cc"></canvas>
+		<script>
+			window.onload = function() {
+				canvas = document.getElementById("cc");
+				context = canvas.getContext("2d");
+				img = new Image();
+				img.src = "Assets/sshot.png";
+                score = 0;
+				keys = [];
+				coins = [
+					new Coin(50, 100), new Coin(100, 50), new Coin(400, 400), new Coin(300, 500),
+					new Coin(65, 150), new Coin(80, 300), new Coin(418, 125), new Coin(120, 90),
+                    new Coin(400, 150), new Coin(12, 88), new Coin(300, 400), new Coin(30, 411)
+				];
+				coinbling = new Audio("Assets/dng.ogg");
+				mapx = 0;
+				canvas.width = (14 * 35) / 2;
+				canvas.height = (15 * 35) / 2;
+                context.font = "16px Arial";
+				map = [
+					[ g, g, g, g, g, g, g, g, g, g, g, g, g, g ],
+					[ g, g, g, g, g, g, g, g, g, g, g, g, g, g ],
+					[ g, g, g, g, g, g, g, g, g, g, g, g, g, g ],
+					[ g, g, d, d, d, d, d, d, d, d, d, d, d, d ],
+					[ g, g, d, w, w, w, w, w, w, w, w, d, d, d ],
+					[ g, g, d, w, w, w, w, w, w, w, w, d, d, d ],
+					[ g, g, d, w, w, w, w, w, w, w, w, d, d, d ],
+					[ d, d, d, w, w, w, w, w, w, w, w, d, g, g ],
+					[ d, d, d, w, w, w, w, w, w, w, w, d, g, g ],
+					[ d, d, d, w, w, w, w, w, w, w, w, d, g, g ],
+					[ d, d, d, w, w, w, w, w, w, w, w, d, g, g ],
+					[ d, d, d, d, d, d, d, d, d, d, d, d, g, g ],
+					[ g, g, g, g, g, g, g, g, g, g, d, d, d, d ],
+					[ g, g, g, g, g, g, g, g, g, g, d, w, w, w ],
+					[ g, g, g, g, g, g, g, d, d, d, d, w, w, w ]
+				];
+				requestAnimationFrame(draw);
+			}
+			function draw() {
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                context.setTransform(1, 0, 0, 1, (-player.x - 1) + canvas.width / 2 - player.width,
+				(-player.y - 1) + canvas.height / 2 - player.height);
+				sx = y = 0;
+				// draw map tiles
+				for(let i = 0; i < map.length; i ++) {
+					for(let j = 0; j < map[i].length; j ++) {
+						if(map[i][j] === g) sx = g.sx;
+						if(map[i][j] === d) sx = d.sx;
+						if(map[i][j] === w) sx = w.sx;
+						context.drawImage(img, sx, 0, 35, 35, mapx, y, 35, 35);
+						mapx += 35;
+					}
+					y += 35;
+					mapx = 0;
+				}
+				// draw coins
+				for(let i = 0; i < coins.length; i ++) coins[i].draw();
+				player.draw();
+				// collision water tiles
+				for(let i = 3; i < 11; i ++) {
+					for(let j = 4; j < 11; j ++) {
+						collideWater(player.x, player.y, player.width, player.height, 35 * i, 35 * j, 30, 18);
+					}
+				}
+				for(let i = 11; i < 14; i ++) {
+					for(let j = 13; j < 15; j ++) {
+						collideWater(player.x, player.y, player.width, player.height, 35 * i, 35 * j, 30, 18);
+					}
+				}
+				// collision coins
+				for(let i = 0; i < coins.length; i ++) {
+					collideCoin(player.x, player.y, player.width, player.height, coins[i].x, coins[i].y, coins[i].width, coins[i].height);
+				}
+				// collision end
+                context.fillText("Score: " + score, 3, 260);
+				console.log(player.y);
+				requestAnimationFrame(draw);
+			}
+			function Coin(x, y) {
+				this.x = x;
+				this.y = y;
+				this.sx = 113;
+				this.sy = 3;
+				this.height = 24;
+				this.width = 24;
+				this.scroll = this.width;
+				this.draw = function() {
+					context.drawImage(img, this.sx, this.sy, this.width, this.height, this.x, this.y, this.width, this.height);
+					this.sx += this.scroll;
+					if(this.sx === 137 || this.sx === 113) this.scroll = -this.scroll;
+				}
+			}
+			const g = { sx: 0 };
+			const d = { sx: 35 };
+			const w = { sx: 70 };
+			const player = {
+				sx: 0,
+				sy: 35,
+				x: 5,
+				y: (15 * 35) - 40,
+				velocity: 1.7,
+				width: 35,
+				height: 28,
+				draw: function() {
+					context.drawImage(img, this.sx, this.sy, this.width, this.height, this.x, this.y, 35, this.height);
+					if(keys[37]) {
+						this.x -= this.velocity;
+						this.sx = 70;
+						this.sy = 35;
+					}
+					if(keys[38]) {
+						this.y -= this.velocity;
+						this.sx = 35;
+						this.sy = 35;
+					}
+					if(keys[39]) {
+						this.x += this.velocity;
+						this.sx = 105;
+						this.sy = 35;
+					}
+					if(keys[40]) {
+						this.y += this.velocity;
+						this.sx = 0;
+						this.sy = 35;
+					}
+					// bounds
+					if(player.x < 0) player.x = 0;
+					if(player.y < 0) player.y = 0;
+					if(player.x > (canvas.width * 2) - 35) player.x = (canvas.width * 2) - 35;
+					if(player.y > (canvas.height * 2) - 28 - 5) player.y = (canvas.height * 2) - 28 - 5;
+                    context.setTransform(1, 0, 0, 1, 0, 0);
+				}
+			};
+			function collideWater(x1, y1, w1, h1, x2, y2, w2, h2) {
+				if(!(x2 > w1 + x1 || x1 > w2 + x2 || y2 > h1 + y1 || y1 > h2 + y2)) {
+					if(keys[38]) player.y += player.velocity;
+					if(keys[40]) player.y -= player.velocity;
+					if(keys[37]) player.x += player.velocity;
+					if(keys[39]) player.x -= player.velocity;
+				}
+			}
+			function collideCoin(x1, y1, w1, h1, x2, y2, w2, h2) {
+				if(!(x2 + 5 > w1 + x1 || x1 + 5 > w2 + x2 || y2 + 5 > h1 + y1 || y1 + 5 > h2 + y2)) {
+					coinbling.play();
+					// place coins offscreen if touched
+                    for(let i = 0; i < coins.length; i ++) {
+                        if(x2 === coins[i].x && y2 === coins[i].y) coins[i].x = -500;
+                    }
+                    score += 100;
+				}
+			}
+			window.addEventListener("keydown", function(e) { keys[e.keyCode] = true; });
+			window.addEventListener("keyup", function(e) { keys[e.keyCode] = false; });
+		</script>
+	</body>
+</html>
